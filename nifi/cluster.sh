@@ -3,7 +3,7 @@
 tarPath=/Users/ashok.kumar/github/nifi/nifi/nifi-assembly/target/nifi-1.8.0-SNAPSHOT-bin.tar.gz
 toolkitTar=/Users/ashok.kumar/github/nifi/nifi/nifi-toolkit/nifi-toolkit-assembly/target/nifi-toolkit-1.8.0-SNAPSHOT-bin.tar.gz
 isCluster=false
-isHttps=false
+isHttps=true
 securestandalonepath=/Users/ashok.kumar/cluster/nifi-clusters/https/standalone/
 secureclusterpath=/Users/ashok.kumar/cluster/nifi-clusters/https/cluster/
 standalonepath=/Users/ashok.kumar/cluster/nifi-clusters/http/standalone/
@@ -109,10 +109,10 @@ securecluster()
   rm -rf ${secureclusterpath}
   file=$(basename "$tarPath")
   echo $secureclusterpath
-  mkdir ${secureclusterpath}
-  mkdir ${secureclusterpath}/nifi-1
-  mkdir ${secureclusterpath}/nifi-2
-  mkdir ${secureclusterpath}/nifi-3
+  mkdir -p ${secureclusterpath}
+  mkdir -p ${secureclusterpath}/nifi-1
+  mkdir -p ${secureclusterpath}/nifi-2
+  mkdir -p ${secureclusterpath}/nifi-3
   tar -C ${secureclusterpath}/nifi-1 -zxf $tarPath
   tar -C ${secureclusterpath}/nifi-2 -zxf $tarPath
   tar -C ${secureclusterpath}/nifi-3 -zxf $tarPath
@@ -127,43 +127,38 @@ securecluster()
 
   ## configuring nifi-1
   nifi=${secureclusterpath}/nifi-1
-
   ##zookeeper setup
   secure_zk_setup $nifi 3181 1
-
-
   #cluster setup
   secure_cluster_setup $nifi 7997 6997
   ssl_setup $nifi 9081
   debug_setup $nifi 6001
-
   ## ldap setup authorizers.xml
   ldap_setup $nifi
+  #login-identity-providers.xml
+  ldap_login_setup $nifi
 
   ##configuration nifi-2
   nifi=${secureclusterpath}/nifi-2
   ##zookeeper setup
   secure_zk_setup $nifi 3182 2
-
   secure_cluster_setup $nifi 7998 6998
   ssl_setup $nifi 9082
   debug_setup $nifi 6002
-
-  ## ldap setup authorizers.xml
   ldap_setup $nifi
+  ldap_login_setup $nifi
 
   ##configuration nifi-3
   nifi=${secureclusterpath}/nifi-3
   ##zookeeper setup
   secure_zk_setup $nifi 3183 3
-
   #cluster setup
   secure_cluster_setup $nifi 7999 6999
   ssl_setup $nifi 9083
   debug_setup $nifi 6003
-
   ## ldap setup authorizers.xml
   ldap_setup $nifi
+  ldap_login_setup $nifi
 
   cluster_script ${secureclusterpath}
 
@@ -174,7 +169,7 @@ securestandalone()
 {
     echo "setting secure standalone"
     rm -rf ${securestandalonepath}
-    mkdir ${securestandalonepath}
+    mkdir -p ${securestandalonepath}
     file=$(basename "$tarPath")
     tar -C $securestandalonepath/ -zxf $tarPath
     len=`expr ${#file} - 11`
@@ -187,6 +182,7 @@ securestandalone()
     debug_setup $nifi 6004
     ## ldap setup authorizers.xml
     ldap_setup $nifi
+    ldap_login_setup $nifi
 
     cd $toolkitPath/bin
     ./encrypt-config.sh -b ${securestandalonepath}/conf/bootstrap.conf  -k 0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210 -n ${securestandalonepath}/conf/nifi.properties
@@ -209,6 +205,23 @@ ldap_setup()
   sed -i .bak -e 's/To enable the composite-user-group-provider remove 2 lines. This is 2 of 2./<!-- To enable the composite-user-group-provider remove 2 lines. This is 2 of 2./g' $nifi/conf/authorizers.xml
   sed -i .bak -e 's/<property name="User Group Provider 1"><\/property>/<property name="User Group Provider 1">file-user-group-provider<\/property><property name="User Group Provider 2">ldap-user-group-provider<\/property>/g' $nifi/conf/authorizers.xml
   sed -i .bak -e 's/<property name="User Group Provider">file-user-group-provider/<property name="User Group Provider">composite-user-group-provider/g' $nifi/conf/authorizers.xml
+}
+ldap_login_setup()
+{
+  echo "Setting ldap for $1"
+  nifi=$1
+  ## ldap setup login-identity-providers.xml
+  sed -i .bak -e 's/<property name="Authentication Strategy">START_TLS/<property name="Authentication Strategy">SIMPLE/g' $nifi/conf/login-identity-providers.xml
+  sed -i .bak -e 's/<property name="Manager DN">/<property name="Manager DN">uid=admin,ou=system/g' $nifi/conf/login-identity-providers.xml
+  sed -i .bak -e 's/<property name="Manager Password">/<property name="Manager Password">secret/g' $nifi/conf/login-identity-providers.xml
+
+  sed -i .bak -e 's/ldap-provider remove 2 lines. This is 1 of 2./ldap-provider remove 2 lines. This is 1 of 2. -->/g' $nifi/conf/login-identity-providers.xml
+  sed -i .bak -e 's/To enable the ldap-provider remove 2 lines. This is 2 of 2./<!-- To enable the ldap-provider remove 2 lines. This is 2 of 2./g' $nifi/conf/login-identity-providers.xml
+  sed -i .bak -e 's/<property name="Url">/<property name="Url">ldap:\/\/localhost:10389/g' $nifi/conf/login-identity-providers.xml
+  sed -i .bak -e 's/<property name="User Search Base">/<property name="User Search Base">ou=nifi,dc=horton/g' $nifi/conf/login-identity-providers.xml
+  sed -i .bak -e 's/<property name="User Search Filter">/<property name="User Search Filter">uid={0}/g' $nifi/conf/login-identity-providers.xml
+
+  sed -i .bak -e 's/nifi.security.user.login.identity.provider=/nifi.security.user.login.identity.provider=ldap-provider/g' $nifi/conf/nifi.properties
 
 }
 nonsecure()
@@ -224,7 +237,7 @@ standalone()
 {
    echo "setting non secure standalone"
    rm -rf ${standalonepath}
-   mkdir ${standalonepath}
+   mkdir -p ${standalonepath}
    file=$(basename "$tarPath")
    tar -C $standalonepath/ -zxf $tarPath
    len=`expr ${#file} - 11`
@@ -277,10 +290,10 @@ cluster()
   rm -rf ${clusterpath}
   file=$(basename "$tarPath")
   echo $clusterpath
-  mkdir ${clusterpath}
-  mkdir ${clusterpath}/nifi-1
-  mkdir ${clusterpath}/nifi-2
-  mkdir ${clusterpath}/nifi-3
+  mkdir -p ${clusterpath}
+  mkdir -p ${clusterpath}/nifi-1
+  mkdir -p ${clusterpath}/nifi-2
+  mkdir -p ${clusterpath}/nifi-3
   tar -C ${clusterpath}/nifi-1 -zxf $tarPath
   tar -C ${clusterpath}/nifi-2 -zxf $tarPath
   tar -C ${clusterpath}/nifi-3 -zxf $tarPath
