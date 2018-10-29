@@ -2,8 +2,8 @@
 
 tarPath=/Users/ashok.kumar/github/nifi/nifi/nifi-assembly/target/nifi-1.8.0-SNAPSHOT-bin.tar.gz
 toolkitTar=/Users/ashok.kumar/github/nifi/nifi/nifi-toolkit/nifi-toolkit-assembly/target/nifi-toolkit-1.8.0-SNAPSHOT-bin.tar.gz
-isCluster=true
-isHttps=true
+isCluster=false
+isHttps=false
 securestandalonepath=/Users/ashok.kumar/cluster/nifi-clusters/https/standalone/
 secureclusterpath=/Users/ashok.kumar/cluster/nifi-clusters/https/cluster/
 standalonepath=/Users/ashok.kumar/cluster/nifi-clusters/http/standalone/
@@ -39,12 +39,11 @@ secure_zk_setup()
   mkdir -p $nifi/state/zookeeper/version-2
   echo $3>$nifi/state/zookeeper/myid
 }
-secure_ssl_setup()
+secure_cluster_setup()
 {
-  nodePort=$1
-  remotePort=$2
-  httpsPort=$3
-  debugPort=$4
+  nifi=$1
+  nodePort=$2
+  remotePort=$3
 
   sed -i .bak -e 's/nifi.cluster.is.node=false/nifi.cluster.is.node=true/g' $nifi/conf/nifi.properties
   sed -i .bak -e 's/nifi.cluster.node.address=/nifi.cluster.node.address=localhost/g' $nifi/conf/nifi.properties
@@ -54,8 +53,22 @@ secure_ssl_setup()
   sed -i .bak -e 's/nifi.cluster.flow.election.max.candidates=/nifi.cluster.flow.election.max.candidates=1/g' $nifi/conf/nifi.properties
   sed -i .bak -e 's/nifi.cluster.protocol.is.secure=false/nifi.cluster.protocol.is.secure=true/g' $nifi/conf/nifi.properties
 
+  sed -i .bak -e 's/<property name="Node Identity 1"><\/property>/<property name="Node Identity 1">UID=ashok-nifi, OU=nifi, CN=localhost<\/property><property name="Node Identity 2">UID=ashok-nifi, OU=nifi, CN=localhost<\/property><property name="Node Identity 3">UID=ashok-nifi, OU=nifi, CN=localhost<\/property>/g' $nifi/conf/authorizers.xml
+  #With above configuration you will be able to login to nifi ui using certificate but to get access, create policy by clicking access policy in root canvase
 
+}
+debug_setup()
+{
+  nifi=$1
+  debugPort=$2
+  #debug configuration
+  sed -i .bak -e 's/#java.arg.debug=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8000/java.arg.debug=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address='$debugPort'/g' $nifi/conf/bootstrap.conf
 
+}
+ssl_setup()
+{
+  nifi=$1
+  httpsPort=$2
   sed -i .bak -e 's/nifi.security.keystore=/nifi.security.keystore=\/Users\/ashok.kumar\/cluster\/nifi-clusters\/key\/nifi\/nifi_keystore.p12/g' $nifi/conf/nifi.properties
   sed -i .bak -e 's/nifi.security.keystoreType=/nifi.security.keystoreType=jks/g' $nifi/conf/nifi.properties
   sed -i .bak -e 's/nifi.security.keystorePasswd=/nifi.security.keystorePasswd=Myself@1986/g' $nifi/conf/nifi.properties
@@ -66,19 +79,8 @@ secure_ssl_setup()
   sed -i .bak -e 's/nifi.web.http.port=8080/nifi.web.http.port=/g' $nifi/conf/nifi.properties
   sed -i .bak -e 's/nifi.web.https.port=/nifi.web.https.port='$httpsPort'/g' $nifi/conf/nifi.properties
   sed -i .bak -e 's/nifi.remote.input.secure=false/nifi.remote.input.secure=true/g' $nifi/conf/nifi.properties
-
-
-
-
   sed -i .bak -e 's/<property name="Initial User Identity 1"><\/property>/<property name="Initial User Identity 1">UID=ashok-nifi, OU=nifi, CN=localhost<\/property>/g' $nifi/conf/authorizers.xml
   sed -i .bak -e 's/<property name="Initial Admin Identity"><\/property>/<property name="Initial Admin Identity">UID=ashok-nifi, OU=nifi, CN=localhost<\/property>/g' $nifi/conf/authorizers.xml
-  sed -i .bak -e 's/<property name="Node Identity 1"><\/property>/<property name="Node Identity 1">UID=ashok-nifi, OU=nifi, CN=localhost<\/property><property name="Node Identity 2">UID=ashok-nifi, OU=nifi, CN=localhost<\/property><property name="Node Identity 3">UID=ashok-nifi, OU=nifi, CN=localhost<\/property>/g' $nifi/conf/authorizers.xml
-  #With above configuration you will be able to login to nifi ui using certificate but to get access, create policy by clicking access policy in root canvase
-
-  #debug configuration
-  sed -i .bak -e 's/#java.arg.debug=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8000/java.arg.debug=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address='$debugPort'/g' $nifi/conf/bootstrap.conf
-
-
 }
 cluster_script()
 {
@@ -131,7 +133,9 @@ securecluster()
 
 
   #cluster setup
-  secure_ssl_setup 7997 6997 9081 6001
+  secure_cluster_setup $nifi 7997 6997
+  ssl_setup $nifi 9081
+  debug_setup $nifi 6001
 
   ## ldap setup authorizers.xml
   ldap_setup $nifi
@@ -141,7 +145,9 @@ securecluster()
   ##zookeeper setup
   secure_zk_setup $nifi 3182 2
 
-  secure_ssl_setup 7998 6998 9082 6002
+  secure_cluster_setup $nifi 7998 6998
+  ssl_setup $nifi 9082
+  debug_setup $nifi 6002
 
   ## ldap setup authorizers.xml
   ldap_setup $nifi
@@ -152,7 +158,9 @@ securecluster()
   secure_zk_setup $nifi 3183 3
 
   #cluster setup
-  secure_ssl_setup 7999 6999 9083 6003
+  secure_cluster_setup $nifi 7999 6999
+  ssl_setup $nifi 9083
+  debug_setup $nifi 6003
 
   ## ldap setup authorizers.xml
   ldap_setup $nifi
@@ -175,24 +183,8 @@ securestandalone()
     rmdir $securestandalonepath/$foldername
     nifi=$securestandalonepath
     ##configuring nifi.properties
-    sed -i .bak -e 's/nifi.security.keystore=/nifi.security.keystore=\/Users\/ashok.kumar\/github\/key\/nifi\/nifi_keystore.p12/g' $nifi/conf/nifi.properties
-    sed -i .bak -e 's/nifi.security.keystoreType=/nifi.security.keystoreType=jks/g' $nifi/conf/nifi.properties
-    sed -i .bak -e 's/nifi.security.keystorePasswd=/nifi.security.keystorePasswd=Myself@1986/g' $nifi/conf/nifi.properties
-    sed -i .bak -e 's/nifi.security.keyPasswd=/nifi.security.keyPasswd=Myself@1986/g' $nifi/conf/nifi.properties
-    sed -i .bak -e 's/nifi.security.truststore=/nifi.security.truststore=\/Users\/ashok.kumar\/github\/key\/nifi\/nifi_truststore.p12/g' $nifi/conf/nifi.properties
-    sed -i .bak -e 's/nifi.security.truststoreType=/nifi.security.truststoreType=jks/g' $nifi/conf/nifi.properties
-    sed -i .bak -e 's/nifi.security.truststorePasswd=/nifi.security.truststorePasswd=Myself@1986/g' $nifi/conf/nifi.properties
-    sed -i .bak -e 's/nifi.web.http.port=8080/nifi.web.http.port=/g' $nifi/conf/nifi.properties
-    sed -i .bak -e 's/nifi.web.https.port=/nifi.web.https.port=9084/g' $nifi/conf/nifi.properties
-    sed -i .bak -e 's/nifi.remote.input.secure=false/nifi.remote.input.secure=true/g' $nifi/conf/nifi.properties
-
-    sed -i .bak -e 's/#java.arg.debug=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8000/java.arg.debug=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=6004/g' $nifi/conf/bootstrap.conf
-
-    ##configure authorization xml
-    sed -i .bak -e 's/<property name="Initial User Identity 1"><\/property>/<property name="Initial User Identity 1">UID=ashok, OU=nifi, CN=localhost<\/property>/g' $nifi/conf/authorizers.xml
-    sed -i .bak -e 's/<property name="Initial Admin Identity"><\/property>/<property name="Initial Admin Identity">UID=ashok, OU=nifi, CN=localhost<\/property>/g' $nifi/conf/authorizers.xml
-    #With above configuration you will be able to login to nifi ui using certificate but to get access, create policy by clicking access policy in root canvase
-
+    ssl_setup $nifi 9084
+    debug_setup $nifi 6004
     ## ldap setup authorizers.xml
     ldap_setup $nifi
 
@@ -230,7 +222,7 @@ nonsecure()
 
 standalone()
 {
-   echo "setting non secure cluster"
+   echo "setting non secure standalone"
    rm -rf ${standalonepath}
    mkdir ${standalonepath}
    file=$(basename "$tarPath")
@@ -240,9 +232,43 @@ standalone()
    mv $standalonepath/$foldername/* $standalonepath
    rmdir $standalonepath/$foldername
    nifi=${standalonepath}/
-   sed -i .bak -e 's/nifi.web.http.port=8080/nifi.web.http.port=8084/g' $nifi/conf/nifi.properties
-   sed -i .bak -e 's/#java.arg.debug=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8000/java.arg.debug=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5004/g' $nifi/conf/bootstrap.conf
+   http_setup $nifi 8084
+   debug_setup $nifi 5004
 
+}
+zk_setup()
+{
+  nifi=$1
+  clientPort=$2
+  sed -i .bak -e 's/server.1=/#sever configuration/g' $nifi/conf/zookeeper.properties
+  sed -i .bak -e 's/clientPort=2181/clientPort='$clientPort'/g' $nifi/conf/zookeeper.properties
+  echo "server.1=localhost:2888:3888">>$nifi/conf/zookeeper.properties
+  echo "server.2=localhost:2889:3889">>$nifi/conf/zookeeper.properties
+  echo "server.3=localhost:2890:3890">>$nifi/conf/zookeeper.properties
+  sed -i .bak -e 's/nifi.state.management.embedded.zookeeper.start=false/nifi.state.management.embedded.zookeeper.start=true/g' $nifi/conf/nifi.properties
+  sed -i .bak -e 's/nifi.zookeeper.connect.string=/nifi.zookeeper.connect.string=localhost:2181,localhost:2182,localhost:2183/g' $nifi/conf/nifi.properties
+
+  mkdir -p $nifi/state/zookeeper/version-2
+  echo $3>$nifi/state/zookeeper/myid
+}
+cluster_setup()
+{
+  nifi=$1
+  nodePort=$2
+  remotePort=$3
+  sed -i .bak -e 's/nifi.cluster.is.node=false/nifi.cluster.is.node=true/g' $nifi/conf/nifi.properties
+  sed -i .bak -e 's/nifi.cluster.node.address=/nifi.cluster.node.address=localhost/g' $nifi/conf/nifi.properties
+  sed -i .bak -e 's/nifi.cluster.node.protocol.port=/nifi.cluster.node.protocol.port='$nodePort'/g' $nifi/conf/nifi.properties
+  sed -i .bak -e 's/nifi.remote.input.host=/nifi.remote.input.host=localhost/g' $nifi/conf/nifi.properties
+  sed -i .bak -e 's/nifi.remote.input.socket.port=/nifi.remote.input.socket.port='$remotePort'/g' $nifi/conf/nifi.properties
+
+  sed -i .bak -e 's/nifi.cluster.flow.election.max.candidates=/nifi.cluster.flow.election.max.candidates=1/g' $nifi/conf/nifi.properties
+}
+http_setup()
+{
+  nifi=$1
+  httpPort=$2
+  sed -i .bak -e 's/nifi.web.http.port=8080/nifi.web.http.port='$httpPort'/g' $nifi/conf/nifi.properties
 
 }
 cluster()
@@ -269,88 +295,30 @@ cluster()
 
   ## configuring nifi-1
   nifi=${clusterpath}/nifi-1
-  sed -i .bak -e 's/server.1=/#sever configuration/g' $nifi/conf/zookeeper.properties
-  echo "server.1=localhost:2888:3888">>$nifi/conf/zookeeper.properties
-  echo "server.2=localhost:2889:3889">>$nifi/conf/zookeeper.properties
-  echo "server.3=localhost:2890:3890">>$nifi/conf/zookeeper.properties
-  sed -i .bak -e 's/nifi.state.management.embedded.zookeeper.start=false/nifi.state.management.embedded.zookeeper.start=true/g' $nifi/conf/nifi.properties
-  sed -i .bak -e 's/nifi.zookeeper.connect.string=/nifi.zookeeper.connect.string=localhost:2181,localhost:2182,localhost:2183/g' $nifi/conf/nifi.properties
-  sed -i .bak -e 's/nifi.cluster.is.node=false/nifi.cluster.is.node=true/g' $nifi/conf/nifi.properties
-  sed -i .bak -e 's/nifi.cluster.node.address=/nifi.cluster.node.address=localhost/g' $nifi/conf/nifi.properties
-  sed -i .bak -e 's/nifi.cluster.node.protocol.port=/nifi.cluster.node.protocol.port=9997/g' $nifi/conf/nifi.properties
-  sed -i .bak -e 's/nifi.remote.input.host=/nifi.remote.input.host=localhost/g' $nifi/conf/nifi.properties
-  sed -i .bak -e 's/nifi.remote.input.socket.port=/nifi.remote.input.socket.port=8997/g' $nifi/conf/nifi.properties
-  sed -i .bak -e 's/nifi.web.http.port=8080/nifi.web.http.port=8081/g' $nifi/conf/nifi.properties
-  sed -i .bak -e 's/nifi.cluster.flow.election.max.candidates=/nifi.cluster.flow.election.max.candidates=1/g' $nifi/conf/nifi.properties
 
-  sed -i .bak -e 's/#java.arg.debug=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8000/java.arg.debug=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5001/g' $nifi/conf/bootstrap.conf
+  zk_setup $nifi 2181 1
+  cluster_setup $nifi 9997 8997
+  http_setup $nifi 8081
+  debug_setup $nifi 5001
 
-  mkdir -p $nifi/state/zookeeper
-  echo "1">$nifi/state/zookeeper/myid
-  mkdir -p $nifi/state/zookeeper/version-2
+
 
   ##configuration nifi-2
   nifi=${clusterpath}/nifi-2
-  sed -i .bak -e 's/server.1=/#sever configuration/g' $nifi/conf/zookeeper.properties
-  sed -i .bak -e 's/clientPort=2181/clientPort=2182/g' $nifi/conf/zookeeper.properties
-  echo "server.1=localhost:2888:3888">>$nifi/conf/zookeeper.properties
-  echo "server.2=localhost:2889:3889">>$nifi/conf/zookeeper.properties
-  echo "server.3=localhost:2890:3890">>$nifi/conf/zookeeper.properties
-  sed -i .bak -e 's/nifi.state.management.embedded.zookeeper.start=false/nifi.state.management.embedded.zookeeper.start=true/g' $nifi/conf/nifi.properties
-  sed -i .bak -e 's/nifi.zookeeper.connect.string=/nifi.zookeeper.connect.string=localhost:2181,localhost:2182,localhost:2183/g' $nifi/conf/nifi.properties
-  sed -i .bak -e 's/nifi.cluster.is.node=false/nifi.cluster.is.node=true/g' $nifi/conf/nifi.properties
-  sed -i .bak -e 's/nifi.cluster.node.address=/nifi.cluster.node.address=localhost/g' $nifi/conf/nifi.properties
-  sed -i .bak -e 's/nifi.cluster.node.protocol.port=/nifi.cluster.node.protocol.port=9998/g' $nifi/conf/nifi.properties
-  sed -i .bak -e 's/nifi.remote.input.host=/nifi.remote.input.host=localhost/g' $nifi/conf/nifi.properties
-  sed -i .bak -e 's/nifi.remote.input.socket.port=/nifi.remote.input.socket.port=8998/g' $nifi/conf/nifi.properties
-  sed -i .bak -e 's/nifi.web.http.port=8080/nifi.web.http.port=8082/g' $nifi/conf/nifi.properties
-  sed -i .bak -e 's/nifi.cluster.flow.election.max.candidates=/nifi.cluster.flow.election.max.candidates=1/g' $nifi/conf/nifi.properties
-  mkdir -p $nifi/state/zookeeper
-  echo "2">$nifi/state/zookeeper/myid
-  mkdir -p $nifi/state/zookeeper/version-2
-
-  sed -i .bak -e 's/#java.arg.debug=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8000/java.arg.debug=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5002/g' $nifi/conf/bootstrap.conf
-
+  zk_setup $nifi 2182 2
+  cluster_setup $nifi 9998 8998
+  http_setup $nifi 8082
+  debug_setup $nifi 5002
 
   ##configuration nifi-3
   nifi=${clusterpath}/nifi-3
-  sed -i .bak -e 's/server.1=/#sever configuration/g' $nifi/conf/zookeeper.properties
-  sed -i .bak -e 's/clientPort=2181/clientPort=2183/g' $nifi/conf/zookeeper.properties
-  echo "server.1=localhost:2888:3888">>$nifi/conf/zookeeper.properties
-  echo "server.2=localhost:2889:3889">>$nifi/conf/zookeeper.properties
-  echo "server.3=localhost:2890:3890">>$nifi/conf/zookeeper.properties
-  sed -i .bak -e 's/nifi.state.management.embedded.zookeeper.start=false/nifi.state.management.embedded.zookeeper.start=true/g' $nifi/conf/nifi.properties
-  sed -i .bak -e 's/nifi.zookeeper.connect.string=/nifi.zookeeper.connect.string=localhost:2181,localhost:2182,localhost:2183/g' $nifi/conf/nifi.properties
-  sed -i .bak -e 's/nifi.cluster.is.node=false/nifi.cluster.is.node=true/g' $nifi/conf/nifi.properties
-  sed -i .bak -e 's/nifi.cluster.node.address=/nifi.cluster.node.address=localhost/g' $nifi/conf/nifi.properties
-  sed -i .bak -e 's/nifi.cluster.node.protocol.port=/nifi.cluster.node.protocol.port=9999/g' $nifi/conf/nifi.properties
-  sed -i .bak -e 's/nifi.remote.input.host=/nifi.remote.input.host=localhost/g' $nifi/conf/nifi.properties
-  sed -i .bak -e 's/nifi.remote.input.socket.port=/nifi.remote.input.socket.port=8999/g' $nifi/conf/nifi.properties
-  sed -i .bak -e 's/nifi.web.http.port=8080/nifi.web.http.port=8083/g' $nifi/conf/nifi.properties
-  sed -i .bak -e 's/nifi.cluster.flow.election.max.candidates=/nifi.cluster.flow.election.max.candidates=1/g' $nifi/conf/nifi.properties
-  mkdir -p $nifi/state/zookeeper
-  echo "3">$nifi/state/zookeeper/myid
-  mkdir -p $nifi/state/zookeeper/version-2
-
-  sed -i .bak -e 's/#java.arg.debug=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8000/java.arg.debug=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5003/g' $nifi/conf/bootstrap.conf
+  zk_setup $nifi 2183 3
+  cluster_setup $nifi 9999 8999
+  http_setup $nifi 8083
+  debug_setup $nifi 5003
 
   #restart script
-  echo "#!/bin/sh" >>${clusterpath}/restart-cluster.sh
-  echo "cd ${clusterpath}nifi-1/bin/">>${clusterpath}/restart-cluster.sh
-  echo "./nifi.sh restart">>${clusterpath}/restart-cluster.sh
-  echo "cd ${clusterpath}nifi-2/bin/">>${clusterpath}/restart-cluster.sh
-  echo "./nifi.sh restart">>${clusterpath}/restart-cluster.sh
-  echo "cd ${clusterpath}nifi-3/bin/">>${clusterpath}/restart-cluster.sh
-  echo "./nifi.sh restart">>${clusterpath}/restart-cluster.sh
-
-  ## stop script
-  echo "#!/bin/sh" >>${clusterpath}/stop-cluster.sh
-  echo "cd ${clusterpath}nifi-1/bin/">>${clusterpath}/stop-cluster.sh
-  echo "./nifi.sh stop">>${clusterpath}/stop-cluster.sh
-  echo "cd ${clusterpath}nifi-2/bin/">>${clusterpath}/stop-cluster.sh
-  echo "./nifi.sh stop">>${clusterpath}/stop-cluster.sh
-  echo "cd ${clusterpath}nifi-3/bin/">>${clusterpath}/stop-cluster.sh
-  echo "./nifi.sh stop">>${clusterpath}/stop-cluster.sh
+  cluster_script $clusterpath
 
   chmod -R 777 ${clusterpath}
 
