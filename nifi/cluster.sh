@@ -1,7 +1,7 @@
 #!/bin/sh
 
-tarPath=/Users/ashok.kumar/github/nifi/nifi/nifi-assembly/target/nifi-1.8.0-SNAPSHOT-bin.tar.gz
-toolkitTar=/Users/ashok.kumar/github/nifi/nifi/nifi-toolkit/nifi-toolkit-assembly/target/nifi-toolkit-1.8.0-SNAPSHOT-bin.tar.gz
+tarPath=/Users/ashok.kumar/github/nifi/nifi/nifi-assembly/target/nifi-1.9.0-SNAPSHOT-bin.tar.gz
+toolkitTar=/Users/ashok.kumar/github/nifi/nifi/nifi-toolkit/nifi-toolkit-assembly/target/nifi-toolkit-1.9.0-SNAPSHOT-bin.tar.gz
 isCluster=false
 isHttps=true
 securestandalonepath=/Users/ashok.kumar/cluster/nifi-clusters/https/standalone/
@@ -63,6 +63,24 @@ debug_setup()
   debugPort=$2
   #debug configuration
   sed -i .bak -e 's/#java.arg.debug=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8000/java.arg.debug=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address='$debugPort'/g' $nifi/conf/bootstrap.conf
+
+}
+kerberos_setup()
+{
+  nifi=$1
+  sed -i .bak -e 's/<\/accessPolicyProvider>/<!--property name="Initial Admin Identity">ashok@HWX.COM<\/property--><\/accessPolicyProvider>/g' $nifi/conf/authorizers.xml
+  sed -i .bak -e 's/<class>org.apache.nifi.authorization.FileUserGroupProvider<\/class>/<class>org.apache.nifi.authorization.FileUserGroupProvider<\/class><!--property name="Initial User Identity 2">ashok@HWX.COM<\/property-->/g' $nifi/conf/authorizers.xml
+  #Manual configuration
+  #1. enable kerberos provider in login-identity-providers.xml
+  #2. provide Default realm for e.g HWX.COM
+  #3. Enable Initial Admin Identity property in authorizers.xml e.g ashok@HWX.COM
+  #4. Modify or add Initial User Identity <1 or 2> e.g ashok@HWX.COM
+  #5. nifiprop: change nifi.security.user.login.identity.provider to kerberos-provider
+  #6. nifiprop: add nifi.kerberos.service.principal
+  #7. nifiprop: add nifi.kerberos.krb5.file
+  #8. add nifi.kerberos.service.keytab.location
+  #9. nifiprop: add nifi.kerberos.spnego.principal
+  #10. nifiprop: add nifi.kerberos.spnego.keytab.location
 
 }
 ssl_setup()
@@ -179,6 +197,8 @@ securestandalone()
     nifi=$securestandalonepath
     ##configuring nifi.properties
     ssl_setup $nifi 9084
+    ##kerberos setup disabled
+    kerberos_setup $nifi
     debug_setup $nifi 6004
     ## ldap setup authorizers.xml
     ldap_setup $nifi
