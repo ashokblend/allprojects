@@ -2,8 +2,8 @@
 
 tarPath=/Users/ashok.kumar/github/nifi/nifi/nifi-assembly/target/nifi-1.9.0-SNAPSHOT-bin.tar.gz
 toolkitTar=/Users/ashok.kumar/github/nifi/nifi/nifi-toolkit/nifi-toolkit-assembly/target/nifi-toolkit-1.9.0-SNAPSHOT-bin.tar.gz
-isCluster=false
-isHttps=true
+isCluster=true
+isHttps=false
 securestandalonepath=/Users/ashok.kumar/cluster/nifi-clusters/https/standalone/
 secureclusterpath=/Users/ashok.kumar/cluster/nifi-clusters/https/cluster/
 standalonepath=/Users/ashok.kumar/cluster/nifi-clusters/http/standalone/
@@ -44,6 +44,7 @@ secure_cluster_setup()
   nifi=$1
   nodePort=$2
   remotePort=$3
+  loadPort=$4
 
   sed -i .bak -e 's/nifi.cluster.is.node=false/nifi.cluster.is.node=true/g' $nifi/conf/nifi.properties
   sed -i .bak -e 's/nifi.cluster.node.address=/nifi.cluster.node.address=localhost/g' $nifi/conf/nifi.properties
@@ -289,11 +290,13 @@ cluster_setup()
   nifi=$1
   nodePort=$2
   remotePort=$3
+  loadPort=$4
   sed -i .bak -e 's/nifi.cluster.is.node=false/nifi.cluster.is.node=true/g' $nifi/conf/nifi.properties
   sed -i .bak -e 's/nifi.cluster.node.address=/nifi.cluster.node.address=localhost/g' $nifi/conf/nifi.properties
   sed -i .bak -e 's/nifi.cluster.node.protocol.port=/nifi.cluster.node.protocol.port='$nodePort'/g' $nifi/conf/nifi.properties
   sed -i .bak -e 's/nifi.remote.input.host=/nifi.remote.input.host=localhost/g' $nifi/conf/nifi.properties
   sed -i .bak -e 's/nifi.remote.input.socket.port=/nifi.remote.input.socket.port='$remotePort'/g' $nifi/conf/nifi.properties
+  sed -i .bak -e 's/nifi.cluster.load.balance.port=6342/nifi.cluster.load.balance.port='$loadPort'/g' $nifi/conf/nifi.properties
 
   sed -i .bak -e 's/nifi.cluster.flow.election.max.candidates=/nifi.cluster.flow.election.max.candidates=1/g' $nifi/conf/nifi.properties
 }
@@ -330,7 +333,7 @@ cluster()
   nifi=${clusterpath}/nifi-1
 
   zk_setup $nifi 2181 1
-  cluster_setup $nifi 9997 8997
+  cluster_setup $nifi 9997 8997 6431
   http_setup $nifi 8081
   debug_setup $nifi 5001
 
@@ -339,14 +342,14 @@ cluster()
   ##configuration nifi-2
   nifi=${clusterpath}/nifi-2
   zk_setup $nifi 2182 2
-  cluster_setup $nifi 9998 8998
+  cluster_setup $nifi 9998 8998 6432
   http_setup $nifi 8082
   debug_setup $nifi 5002
 
   ##configuration nifi-3
   nifi=${clusterpath}/nifi-3
   zk_setup $nifi 2183 3
-  cluster_setup $nifi 9999 8999
+  cluster_setup $nifi 9999 8999 6433
   http_setup $nifi 8083
   debug_setup $nifi 5003
 
