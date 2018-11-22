@@ -44,7 +44,6 @@ secure_cluster_setup()
   nifi=$1
   nodePort=$2
   remotePort=$3
-  loadPort=$4
 
   sed -i .bak -e 's/nifi.cluster.is.node=false/nifi.cluster.is.node=true/g' $nifi/conf/nifi.properties
   sed -i .bak -e 's/nifi.cluster.node.address=/nifi.cluster.node.address=localhost/g' $nifi/conf/nifi.properties
