@@ -44,6 +44,7 @@ secure_cluster_setup()
   nifi=$1
   nodePort=$2
   remotePort=$3
+  loadPort=$4
 
   sed -i .bak -e 's/nifi.cluster.is.node=false/nifi.cluster.is.node=true/g' $nifi/conf/nifi.properties
   sed -i .bak -e 's/nifi.cluster.node.address=/nifi.cluster.node.address=localhost/g' $nifi/conf/nifi.properties
@@ -52,6 +53,7 @@ secure_cluster_setup()
   sed -i .bak -e 's/nifi.remote.input.socket.port=/nifi.remote.input.socket.port='$remotePort'/g' $nifi/conf/nifi.properties
   sed -i .bak -e 's/nifi.cluster.flow.election.max.candidates=/nifi.cluster.flow.election.max.candidates=1/g' $nifi/conf/nifi.properties
   sed -i .bak -e 's/nifi.cluster.protocol.is.secure=false/nifi.cluster.protocol.is.secure=true/g' $nifi/conf/nifi.properties
+  sed -i .bak -e 's/nifi.cluster.load.balance.port=6342/nifi.cluster.load.balance.port='$loadPort'/g' $nifi/conf/nifi.properties
 
   sed -i .bak -e 's/<property name="Node Identity 1"><\/property>/<property name="Node Identity 1">UID=ashok-nifi, OU=nifi, CN=localhost<\/property><property name="Node Identity 2">UID=ashok-nifi, OU=nifi, CN=localhost<\/property><property name="Node Identity 3">UID=ashok-nifi, OU=nifi, CN=localhost<\/property>/g' $nifi/conf/authorizers.xml
   #With above configuration you will be able to login to nifi ui using certificate but to get access, create policy by clicking access policy in root canvase
@@ -148,7 +150,7 @@ securecluster()
   ##zookeeper setup
   secure_zk_setup $nifi 3181 1
   #cluster setup
-  secure_cluster_setup $nifi 7997 6997
+  secure_cluster_setup $nifi 7997 6997 7431
   ssl_setup $nifi 9081
   debug_setup $nifi 6001
   ## ldap setup authorizers.xml
@@ -160,7 +162,7 @@ securecluster()
   nifi=${secureclusterpath}/nifi-2
   ##zookeeper setup
   secure_zk_setup $nifi 3182 2
-  secure_cluster_setup $nifi 7998 6998
+  secure_cluster_setup $nifi 7998 6998 7432
   ssl_setup $nifi 9082
   debug_setup $nifi 6002
   ldap_setup $nifi
@@ -171,7 +173,7 @@ securecluster()
   ##zookeeper setup
   secure_zk_setup $nifi 3183 3
   #cluster setup
-  secure_cluster_setup $nifi 7999 6999
+  secure_cluster_setup $nifi 7999 6999 7433
   ssl_setup $nifi 9083
   debug_setup $nifi 6003
   ## ldap setup authorizers.xml
