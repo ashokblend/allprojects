@@ -3,10 +3,6 @@ It creates a structured store from given raw file. Each file in structured store
 * Schema of sorted data
    * List[Chunk]: Here Chunk is block of rows. After writting block of rows in data file. We keep metadata like offset, length 
                   etc in meta file
-                  * startIp
-                  * endIp
-                  * offset
-                  * length of chunk
    * no of data file means, each file is created by parallel execution of LoadTask.
 
 * Schema of meta
