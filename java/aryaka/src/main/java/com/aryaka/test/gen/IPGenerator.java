@@ -44,10 +44,10 @@ public class IPGenerator {
 
 	public static void main(String[] args) {
 		try {
-			int noOfRecord = 100;
-			int cityCardinality = 45;
-			int recordsperfile = 100;
-			String outDir = "/Users/ashok.kumar/github/allprojects/java/aryaka/data/small/";
+			int noOfRecord = 10000000;
+			int cityCardinality = 10000;
+			int recordsperfile = 2000000;
+			String outDir = "/Users/ashok.kumar/github/allprojects/java/aryaka/data/big/";
 			IPGenerator ipgen = new IPGenerator(noOfRecord, cityCardinality, recordsperfile, outDir);
 			ipgen.generate();
 		} catch (Exception e) {
