@@ -4,6 +4,9 @@
 	<groupId>aryaka</groupId>
 	<artifactId>araya</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
+	<properties>
+		  <project.build.directory>WEB-INF</project.build.directory>
+	</properties>
 	<dependencies>
 		<dependency>
 			<groupId>org.xerial.snappy</groupId>
@@ -13,24 +16,50 @@
 			<scope>compile</scope>
 		</dependency>
 		<dependency>
-          <groupId>javax.servlet</groupId>
-          <artifactId>servlet-api</artifactId>
-          <version>2.5</version>
-        <scope>provided</scope>
+      <groupId>javax.servlet</groupId>
+      <artifactId>servlet-api</artifactId>
+      <version>2.5</version>
+      <scope>provided</scope>
      </dependency>
-		
-
-	</dependencies>
+		 <dependency>
+		 	<groupId>junit</groupId>
+		 	<artifactId>junit</artifactId>
+		 	<version>4.12</version>
+		 	<scope>test</scope>
+		 </dependency>
+  </dependencies>
 	<build>
+		<outputDirectory>WEB-INF/classes</outputDirectory>
 		<plugins>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.6.1</version>
 				<configuration>
-					<source />
-					<target />
+					<source>1.8</source>
+					<target>1.8</target>
 				</configuration>
 			</plugin>
+			<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-dependency-plugin</artifactId>
+					<version>3.1.1</version>
+					<executions>
+						<execution>
+							<id>copy-dependencies</id>
+							<phase>install</phase>
+							<goals>
+								<goal>copy-dependencies</goal>
+							</goals>
+							<configuration>
+								<outputDirectory>WEB-INF/lib</outputDirectory>
+								<overWriteReleases>false</overWriteReleases>
+								<overWriteSnapshots>false</overWriteSnapshots>
+								<overWriteIfNewer>true</overWriteIfNewer>
+							</configuration>
+						</execution>
+					</executions>
+				</plugin>
 		</plugins>
+
 	</build>
 </project>
