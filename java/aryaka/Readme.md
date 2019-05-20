@@ -1,8 +1,8 @@
 It creates a structured store from given raw file. Each file in structured store will be sorted and compressed with snappy. Each file is created using LoadTask. LoadData spawns multiple loadtask, allocating raw files to it. This load task will sort the data and compresses it with snappy.
 
 * Schema of sorted data
-   * List<Chunk>: Chunk is block of rows. After writting block of rows in data file. We keep metadata like offset, length etc 
-                  in meta file
+   * List[Chunk]: Here Chunk is block of rows. After writting block of rows in data file. We keep metadata like offset, length 
+                  etc in meta file
                   * startIp
                   * endIp
                   * offset
