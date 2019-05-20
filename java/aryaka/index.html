@@ -1,0 +1,77 @@
+<html>
+  <title>IpSearch</title>
+  <head>
+    <style>
+      body {
+        border: 1px solid black;
+        margin-top: 100px;
+        margin-bottom: 100px;
+        margin-right: 150px;
+        margin-left: 80px;
+      }
+      #ipsearch {
+        margin-top:50px;
+        margin-bottom: 70px;
+        text-align: center;
+        font-size: 30;
+      }
+      input[type=text] {
+        width: 20%;
+        height: 5%;
+      }
+      input[type=button] {
+        width: 10%;
+        height: 5%;
+        background-color: #4CAF50;
+        color: white;
+
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+    </style>
+    <script>
+
+    function submitrequest() {
+    	var ip=document.getElementById("ip").value
+    	if(!validateIp(ip)) {
+    		return
+    	}
+      var xhttp = new XMLHttpRequest();
+      xhttp.onreadystatechange = function() {
+         if (this.readyState == 4 && this.status == 200) {
+            var resp = this.responseText
+            window.alert(this.responseText)
+            var html = "City:"
+            if("Ip not found" == resp) {
+               html=html+"<span style='color:red'>"+resp+"</span>"
+            } else {
+              html=html+"<span style='color:blue'>"+resp+"</span>"
+            }
+            document.getElementById("city").innerHTML = html;
+         }
+      }
+      xhttp.open("GET", "searchip?ip="+ip, true);
+      xhttp.send();
+
+    }
+    function validateIp(ip)
+    {
+       if (/^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(ip))
+       {
+         return (true)
+       }
+       alert("You have entered an invalid IP address!")
+       return (false)
+    }
+    </script>
+  </head>
+
+  <body>
+     <div id="ipsearch">
+      <span>Input Ip Address:<input type="text" id="ip"></span>
+      <input id ="submit" type="button" value="Submit" onclick="submitrequest()"><br/><br/>
+      <span id="city" style="margin-right:450px"></span>
+    </div>
+  </body>
+</html>
