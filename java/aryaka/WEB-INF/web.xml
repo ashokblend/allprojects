@@ -28,7 +28,7 @@
         <servlet-class>com.aryaka.test.web.IpSearchServlet</servlet-class>
         <init-param>
 			<param-name>storepath</param-name>
-			<param-value>/Users/ashok.kumar/Applications/apache/tomcat8/webapps/Aryaka/WEB-INF/store/</param-value>
+			<param-value>/Users/ashok.kumar/Applications/apache/tomcat8/webapps/aryaka/WEB-INF/store/</param-value>
 		</init-param>
     </servlet>
   <servlet-mapping>
