@@ -34,12 +34,12 @@ public class LoadTask implements Callable<LoadResult> {
 	 * 
 	 */
 	private List<File> files;
-	private int[] chunksRecCount;
+	//private int[] chunksRecCount;
 	private Chunk[] chunks;
 	private int offset = 0;
 	private File loadFile;
 
-	private String storePath;
+	protected String storePath;
 
 	private String loadPath;
 
@@ -53,11 +53,15 @@ public class LoadTask implements Callable<LoadResult> {
 	public LoadResult call() throws Exception {
 		ExternalMergeSort mergeSort = new ExternalMergeSort(files, storePath);
 		MergeResult mergeResult = mergeSort.doMergeSort();
-		int noOfRecord = mergeResult.getNoOfRecords();
 
+		return writeToStore(mergeResult);
+	}
+
+	protected LoadResult writeToStore(MergeResult mergeResult) throws Exception {
 		FileReader fr = null;
 		BufferedReader br = null;
 		FileOutputStream out = null;
+		this.offset = 0;
 		try {
 			File sortFile = new File(mergeResult.getSortedFilePath());
 			fr = new FileReader(sortFile);
@@ -65,7 +69,7 @@ public class LoadTask implements Callable<LoadResult> {
 			String outFileName = UUID.randomUUID().toString();
 			loadFile = new File(loadPath, outFileName);
 			out = new FileOutputStream(loadFile, true);
-			initChunRecCount(noOfRecord);
+			int[] chunksRecCount = getChunRecCount(mergeResult.getNoOfRecords());
 			int noOfChunk = chunksRecCount.length;
 			String line = null;
 			for (int chunkIndx = 0; chunkIndx < noOfChunk; chunkIndx++) {
@@ -74,7 +78,7 @@ public class LoadTask implements Callable<LoadResult> {
 				// [recordindx]
 				int[] recLen = new int[chunksRecCount[chunkIndx]];
 				int recCounter = 0;
-				chunks[chunkIndx] = new Chunk();
+				chunks[chunkIndx] = new Chunk(chunksRecCount[chunkIndx]);
 				while (recCounter < chunksRecCount[chunkIndx] && (line = br.readLine()) != null) {
 					if (recCounter == 0) {
 						chunks[chunkIndx].setStartIp(line.split(Aryaka.DELIMITER)[0].split(Aryaka.IP_RANGE_DELIMITER)[0]);
@@ -90,17 +94,15 @@ public class LoadTask implements Callable<LoadResult> {
 				flushData(chunkData, out, chunkIndx, recLen);
 
 			}
-			if (!sortFile.delete()) {
-				System.out.println("Failed to delete sort file:" + sortFile.getAbsolutePath());
-			}
+			FileUtil.deleteFile(sortFile);
 
 		} catch (Exception e) {
 			throw new Exception("Error writting result data", e);
 		} finally {
 			FileUtil.closeStream(fr,br,out);
 		}
-
-		return new LoadResult(chunks, loadFile.getAbsolutePath());
+        
+		return new LoadResult(chunks, loadFile.getAbsolutePath(), mergeResult.getNoOfRecords());
 	}
 
 	// write data to file. this is final file
@@ -129,7 +131,8 @@ public class LoadTask implements Callable<LoadResult> {
 	 * This calculate how many chunk should be there and each chunk should contain how many records
 	 * @param noOfRecord : total record count for this load
 	 */
-	private void initChunRecCount(int noOfRecord) {
+	private int[] getChunRecCount(int noOfRecord) {
+		int[] chunksRecCount = null;
 		if (noOfRecord % Aryaka.CHUNK_SIZE == 0) {
 			chunksRecCount = new int[noOfRecord / Aryaka.CHUNK_SIZE];
 			for (int i = 0; i < chunksRecCount.length; i++) {
@@ -149,7 +152,7 @@ public class LoadTask implements Callable<LoadResult> {
 			}
 		}
 		chunks = new Chunk[chunksRecCount.length];
-
+        return chunksRecCount;
 	}
 
 }

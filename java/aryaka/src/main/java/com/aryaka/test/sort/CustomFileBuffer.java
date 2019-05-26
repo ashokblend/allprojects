@@ -1,24 +1,23 @@
 package com.aryaka.test.sort;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 
 /**
  * This is wrapper on top of a BufferedReader... which keeps
  * the last line in memory.
  *
  */
-public final class CustomFileBuffer {
+public final class CustomFileBuffer implements RecordStack {
 
     private BufferedReader fbr;
 
     private String cache;
     
-    public CustomFileBuffer(BufferedReader r) throws IOException {
+    public CustomFileBuffer(BufferedReader r) throws Exception {
         this.fbr = r;
         reload();
     }
-    public void close() throws IOException {
+    public void close() throws Exception {
         this.fbr.close();
     }
 
@@ -30,13 +29,13 @@ public final class CustomFileBuffer {
         return this.cache;
     }
 
-    public String pop() throws IOException {
+    public String pop() throws Exception {
         String answer = peek().toString();// make a copy
         reload();
         return answer;
     }
 
-    private void reload() throws IOException {
+    private void reload() throws Exception {
         this.cache = this.fbr.readLine();
     }
 
