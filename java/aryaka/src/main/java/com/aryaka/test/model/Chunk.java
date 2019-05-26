@@ -17,9 +17,12 @@ public class Chunk implements Serializable {
 	private byte[] recLen;
 	//total no of bytes in this chunk
 	private int length;
+	
+	//no of records in this chunk
+	private int noOfRecords;
 
-	public Chunk() {
-		
+	public Chunk(int noOfRecords) {
+		this.noOfRecords = noOfRecords;
 	}
 
 	public void setStartIp(String startIp) {
@@ -60,6 +63,10 @@ public class Chunk implements Serializable {
 
 	public void setLength(int length) {
 		this.length = length;
+	}
+
+	public int getNoOfRecords() {
+		return noOfRecords;
 	}
 
 	public String toString() {
